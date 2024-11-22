@@ -12,7 +12,7 @@ on:
 jobs:
   # Stage de test
   test:
-    name: Run tests
+    name: Test python
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
