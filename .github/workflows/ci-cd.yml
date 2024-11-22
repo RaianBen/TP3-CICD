@@ -10,7 +10,6 @@ on:
       - main
 
 jobs:
-
   test:
     name: Test python
     runs-on: ubuntu-latest
@@ -46,6 +45,36 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t achiro/application_python:${{ github.sha }} .
-      - name: Push Docker image
+      - name: Push Docker image to Docker Hub
         run: |
           docker push achiro/application_python:${{ github.sha }}
+
+  # Stage de déploiement sur GCP
+  deploy:
+    name: Deploy to GCP
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Authentification avec GCP
+      - name: Set up GCP credentials
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Configuration de Docker pour Google Container Registry
+      - name: Configure Docker for GCP
+        run: |
+          gcloud auth configure-docker
+
+      # Taguer l'image pour GCP (Google Container Registry ou Artifact Registry)
+      - name: Tag Docker image for GCP
+        run: |
+          docker tag achiro/application_python:${{ github.sha }} gcr.io/${{ secrets.GCP_PROJECT_ID }}/application_python:${{ github.sha }}
+
+      # Pousser l'image vers Google Container Registry
+      - name: Push Docker image to GCP
+        run: |
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/application_python:${{ github.sha }}
