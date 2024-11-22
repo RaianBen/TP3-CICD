@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Test python
+    name: Test Python
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: |
-          pytest 
+          pytest
 
   # Stage de build Docker
   build:
@@ -51,25 +51,26 @@ jobs:
 
   # Stage de déploiement sur GCP
   deploy:
-    name: Deploy to GCP
-    needs: build
+    name: Deploy to GCP Kubernetes
+    needs: [build, test]  # Dépendance aux jobs test et build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Authentification avec GCP
-      - name: Set up GCP credentials
-        uses: google-github-actions/auth@v2.1.7
+      # Authentification avec Google Cloud SDK (GCS)
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1  # Utilisation de l'action officielle
         with:
-          credentials_json: ${{ secrets.CLE_GPG }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}  # Fichier clé de service JSON
 
       # Configuration de Docker pour Google Container Registry
       - name: Configure Docker for GCP
         run: |
           gcloud auth configure-docker
 
-      # Taguer l'image pour GCP (Google Container Registry ou Artifact Registry)
+      # Taguer l'image Docker pour GCP
       - name: Tag Docker image for GCP
         run: |
           docker tag achiro/application_python:${{ github.sha }} gcr.io/${{ secrets.GCP_PROJECT_ID }}/application_python:${{ github.sha }}
@@ -78,3 +79,16 @@ jobs:
       - name: Push Docker image to GCP
         run: |
           docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/application_python:${{ github.sha }}
+
+      # Obtenir les informations de cluster Kubernetes
+      - name: Get Kubernetes cluster credentials
+        run: |
+          gcloud container clusters get-credentials non-cluster \
+            --zone europe-central2 \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+
+      # Déployer les ressources Kubernetes
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
