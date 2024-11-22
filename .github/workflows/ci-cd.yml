@@ -62,7 +62,7 @@ jobs:
       - name: Set up GCP credentials
         uses: google-github-actions/auth@v0
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          credentials_json: ${{ secrets.CLE_GPG }}
 
       # Configuration de Docker pour Google Container Registry
       - name: Configure Docker for GCP
